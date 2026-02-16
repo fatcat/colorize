@@ -17,7 +17,9 @@ Feb 15 10:30:05 DENIED eth0   192.168.1.100   44821 125.101.96.49    8080    60 
 ```
 
 PERMIT is displayed in green, DENIED in red.
+
 ![colorize](colorize.png)
+
 ## Requirements
 
 - Bash 4+
@@ -25,8 +27,10 @@ PERMIT is displayed in green, DENIED in red.
 
 Install on Debian/Ubuntu:
 ```bash
-sudo apt install geoip-bin geoip-database
+sudo apt install geoip-bin
 ```
+
+See the sections below on iptables and rsyslog for other requirements. colorize.sh can be adapted to many situations, but I've provided the script I use to setup iptables and the rsyslog configuration files I use. The combination of these enable colorize.sh to work. colorize.sh will not work on a generic iptables log file.
 
 ## Installation
 
@@ -61,39 +65,31 @@ cat /var/log/syslog | ./colorize.sh --no-color > filtered.log
 
 ## Options
 
-| Flag | Description |
-|------|-------------|
-| `-u`, `--show-unmatched` | Print non-matching lines as-is (default: skip them) |
-| `--no-color` | Disable ANSI color codes (useful for piping to files) |
-| `-h`, `--help` | Show usage information |
+| Flag                     | Description                                           |
+|--------------------------|-------------------------------------------------------|
+| `-u`, `--show-unmatched` | Print non-matching lines as-is (default: skip them)   |
+| `-n`, `--no-color`       | Disable ANSI color codes (useful for piping to files) |
+| `-h`, `--help`           | Show usage information                                |
 
-## Log Prefix Classification
+Lines that don't match any known prefix are suppressed by default (use `-u` to show them).
 
-The script classifies iptables log lines based on their log prefix:
+## iptables
+iptables must have 3 chains added so denied and permitted traffic can be discerned by rsyslog (see below) and therefore by the colorize.sh script.
 
-| Log Prefix | Action | Color |
-|------------|--------|-------|
-| `policy accepted` | PERMIT | Green |
-| `policy denied` | DENIED | Red |
-| `iplist denied` | DENIED | Red |
+There is an example script to setup a simple but extensible iptables filter suitable to a host with a direct internet connection. The script is colorize/iptables/iptables.sh
 
-Lines that don't match any known prefix are skipped by default (use `-u` to show them).
+The key of this script is the 3 chains it sets up for denied, denied by list, and permitted traffic. This allows colorize.sh to know which logs are which. By default iptables doesn't add any indicator as to whether a connection was permitted or denied, so we must add that info ourselves.
 
-## Output Columns
+Also, default iptables does not log permitted traffic at all.
 
-| Column | Description |
-|--------|-------------|
-| Timestamp | Original syslog timestamp (e.g., `Feb 15 10:30:02`) |
-| Action | `PERMIT` or `DENIED` |
-| Interface | Inbound interface (e.g., `eth0`) |
-| Source IP | Source IP address |
-| Source Port | Source port number |
-| Dest IP | Destination IP address |
-| Dest Port | Destination port number |
-| Length | Packet length in bytes |
-| Protocol | Protocol (TCP, UDP, ICMP, etc.) |
-| Country Code | 2-letter ISO country code (`--` if unknown) |
-| Country Name | Full country name (`unknown` if not found) |
+## rsyslog
+rsyslog is required to send iptables logs to a specific log file /var/log/iptables.log
+
+Otherwise iptables logs must be gathered via "journalctl -kf" or found in "/var/log/kern.log" along with all other "kern" logs. There is an example rsyslog.conf and example rsyslog.d with 3 files. Use these if they are suitable.
+
+```bash
+sudo apt install rsyslog
+```
 
 ## License
 

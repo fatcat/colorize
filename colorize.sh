@@ -8,7 +8,7 @@
 #
 # Options:
 #   -u, --show-unmatched  Print non-matching lines as-is (default: skip)
-#   --no-color            Disable ANSI color codes
+#   -n, --no-color        Disable ANSI color codes
 #   -h, --help            Show usage information
 
 set -euo pipefail
@@ -32,7 +32,7 @@ column output with GeoIP country lookups.
 
 Options:
   -u, --show-unmatched  Print non-matching lines as-is (default: skip)
-  --no-color            Disable ANSI color codes
+  -n, --no-color        Disable ANSI color codes
   -h, --help            Show this help message
 
 Examples:
@@ -50,7 +50,7 @@ while [[ $# -gt 0 ]]; do
             SHOW_UNMATCHED=true
             shift
             ;;
-        --no-color)
+        -n|--no-color)
             USE_COLOR=false
             shift
             ;;
@@ -73,7 +73,7 @@ fi
 # --- Check for geoiplookup ---
 if ! command -v geoiplookup &>/dev/null; then
     echo "Warning: geoiplookup not found. Install geoip-bin for country lookups." >&2
-    echo "  sudo apt install geoip-bin geoip-database" >&2
+    echo "  sudo apt install geoip-bin" >&2
     HAS_GEOIP=false
 else
     HAS_GEOIP=true
