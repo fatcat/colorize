@@ -12,12 +12,12 @@ Feb 15 10:30:05 fw kernel: policy denied IN=eth0 OUT= SRC=192.168.1.100 DST=199.
 
 Colorized output:
 ```
-Feb 15 10:30:02 $${\color{green}PERMIT}$$ eth0   74.125.46.147   57245 125.101.96.49      53    42 UDP FI Finland
-Feb 15 10:30:05 $${\color{red}PERMIT}$$ eth0   192.168.1.100   44821 125.101.96.49    8080    60 TCP -- unknown
+Feb 15 10:30:02 PERMIT eth0   74.125.46.147   57245 125.101.96.49      53    42 UDP FI Finland
+Feb 15 10:30:05 DENIED eth0   192.168.1.100   44821 125.101.96.49    8080    60 TCP -- unknown
 ```
 
 PERMIT is displayed in green, DENIED in red.
-
+![colorize](colorize.png)
 ## Requirements
 
 - Bash 4+
