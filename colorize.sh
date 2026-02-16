@@ -168,7 +168,7 @@ print_line() {
 
     # Fixed-width format:
     # Timestamp(15) Action(8) Iface(6) SrcIP(15) SrcPort(5) DstIP(15) DstPort(5) Len(5) Proto(4) CC(2) Country
-    printf "%s ${color}%-8s${reset} %-6s %15s %5s %15s %5s %5s %-4s %-2s %s\n" \
+    printf "%s ${color}%-6s${reset} %-6s %15s %5s %15s %5s %5s %-4s %-2s %s\n" \
         "$timestamp" \
         "$action" \
         "$iface" \
