@@ -8,7 +8,7 @@
 #
 # Options:
 #   -u, --show-unmatched  Print non-matching lines as-is (default: skip)
-#   -n, --no-color        Disable ANSI color codes
+#   --no-color            Disable ANSI color codes
 #   -h, --help            Show usage information
 
 set -euo pipefail
@@ -32,7 +32,7 @@ column output with GeoIP country lookups.
 
 Options:
   -u, --show-unmatched  Print non-matching lines as-is (default: skip)
-  -n, --no-color        Disable ANSI color codes
+  --no-color            Disable ANSI color codes
   -h, --help            Show this help message
 
 Examples:
@@ -50,7 +50,7 @@ while [[ $# -gt 0 ]]; do
             SHOW_UNMATCHED=true
             shift
             ;;
-        -n|--no-color)
+        --no-color)
             USE_COLOR=false
             shift
             ;;
@@ -73,7 +73,7 @@ fi
 # --- Check for geoiplookup ---
 if ! command -v geoiplookup &>/dev/null; then
     echo "Warning: geoiplookup not found. Install geoip-bin for country lookups." >&2
-    echo "  sudo apt install geoip-bin" >&2
+    echo "  sudo apt install geoip-bin geoip-database" >&2
     HAS_GEOIP=false
 else
     HAS_GEOIP=true
@@ -148,8 +148,8 @@ print_line() {
     local src_port="$5"
     local dst_ip="$6"
     local dst_port="$7"
-    local length="$8"
     local proto="$9"
+    local length="$8"
     local geo_cc="${10}"
     local geo_country="${11}"
 
@@ -168,7 +168,7 @@ print_line() {
 
     # Fixed-width format:
     # Timestamp(15) Action(8) Iface(6) SrcIP(15) SrcPort(5) DstIP(15) DstPort(5) Len(5) Proto(4) CC(2) Country
-    printf "%s ${color}%-6s${reset} %-6s %15s %5s %15s %5s %5s %-4s %-2s %s\n" \
+    printf "%s ${color}%-6s${reset} %-6s %15s %5s %15s %5s %4s %-4s %-2s %s\n" \
         "$timestamp" \
         "$action" \
         "$iface" \
@@ -176,8 +176,8 @@ print_line() {
         "$src_port" \
         "$dst_ip" \
         "$dst_port" \
-        "$length" \
         "$proto" \
+        "$length" \
         "$geo_cc" \
         "$geo_country"
 }
