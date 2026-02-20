@@ -8,6 +8,7 @@
 #
 # Options:
 #   -u, --show-unmatched  Print non-matching lines as-is (default: skip)
+#   -6, --ipv6            Include IPv6 log lines (default: skip)
 #   --no-color            Disable ANSI color codes
 #   -h, --help            Show usage information
 
@@ -16,6 +17,7 @@ set -euo pipefail
 # --- Defaults ---
 SHOW_UNMATCHED=false
 USE_COLOR=true
+SHOW_IPV6=false
 
 # --- ANSI color codes ---
 RED='\033[0;31m'
@@ -32,6 +34,7 @@ column output with GeoIP country lookups.
 
 Options:
   -u, --show-unmatched  Print non-matching lines as-is (default: skip)
+  -6, --ipv6            Include IPv6 log lines (default: skip)
   --no-color            Disable ANSI color codes
   -h, --help            Show this help message
 
@@ -48,6 +51,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -u|--show-unmatched)
             SHOW_UNMATCHED=true
+            shift
+            ;;
+        -6|--ipv6)
+            SHOW_IPV6=true
             shift
             ;;
         --no-color)
@@ -70,7 +77,7 @@ if [[ "$USE_COLOR" == true ]] && [[ ! -t 1 ]]; then
     USE_COLOR=false
 fi
 
-# --- Check for geoiplookup ---
+# --- Check for geoiplookup / geoiplookup6 ---
 if ! command -v geoiplookup &>/dev/null; then
     echo "Warning: geoiplookup not found. Install geoip-bin for country lookups." >&2
     echo "  sudo apt install geoip-bin geoip-database" >&2
@@ -79,27 +86,38 @@ else
     HAS_GEOIP=true
 fi
 
+if ! command -v geoiplookup6 &>/dev/null; then
+    HAS_GEOIP6=false
+else
+    HAS_GEOIP6=true
+fi
+
 # --- GeoIP lookup function ---
 # Returns "CC CountryName" or "-- unknown"
 geoip_lookup() {
     local ip="$1"
+    local cmd result
 
-    if [[ "$HAS_GEOIP" == false ]]; then
-        echo "-- unknown"
-        return
+    # Choose command based on address family (IPv6 contains ':')
+    if [[ "$ip" == *:* ]]; then
+        [[ "$HAS_GEOIP6" == false ]] && { echo "-- unknown"; return; }
+        cmd="geoiplookup6"
+    else
+        [[ "$HAS_GEOIP" == false ]] && { echo "-- unknown"; return; }
+        cmd="geoiplookup"
     fi
 
-    local result
-    result=$(geoiplookup "$ip" 2>/dev/null) || true
+    result=$("$cmd" "$ip" 2>/dev/null) || true
 
-    # geoiplookup output: "GeoIP Country Edition: CC, Country Name"
-    # or "GeoIP Country Edition: IP Address not found"
-    if [[ "$result" == *"IP Address not found"* ]] || [[ -z "$result" ]]; then
+    # Failure cases: not found, can't resolve hostname, or empty output
+    if [[ -z "$result" ]] \
+        || [[ "$result" == *"IP Address not found"* ]] \
+        || [[ "$result" == *"can't resolve hostname"* ]]; then
         echo "-- unknown"
     else
-        local cc country
-        # Extract "CC, Country Name" after the colon
-        local tail="${result#*: }"
+        local tail cc country
+        # Output format: "GeoIP Country Edition: CC, Country Name"
+        tail="${result#*: }"
         cc="${tail%%,*}"
         country="${tail#*, }"
         echo "$cc $country"
@@ -168,7 +186,7 @@ print_line() {
 
     # Fixed-width format:
     # Timestamp(15) Action(8) Iface(6) SrcIP(15) SrcPort(5) DstIP(15) DstPort(5) Len(5) Proto(4) CC(2) Country
-    printf "%s ${color}%-6s${reset} %-6s %15s %5s %15s %5s %4s %-4s %-2s %s\n" \
+    printf "%s ${color}%-6s${reset} %-15s %15s %5s %15s %5s %4s %-4s %-2s %s\n" \
         "$timestamp" \
         "$action" \
         "$iface" \
@@ -204,6 +222,11 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     dst_port=$(extract_field "$line" "DPT")
     length=$(extract_field "$line" "LEN")
     proto=$(extract_field "$line" "PROTO")
+
+    # Skip IPv6 lines unless --ipv6 is set
+    if [[ "$src_ip" == *:* ]] && [[ "$SHOW_IPV6" == false ]]; then
+        continue
+    fi
 
     # Default empty fields to dashes
     iface="${iface:--}"
